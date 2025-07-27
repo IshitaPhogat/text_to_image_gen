@@ -1,7 +1,8 @@
-from operator import truediv
-
 from dotenv import load_dotenv
 import os
+
+from google.oauth2 import service_account
+import json
 
 load_dotenv()
 
@@ -13,8 +14,8 @@ import vertexai
 from vertexai.preview.vision_models import ImageGenerationModel
 
 import base64
-import io
-from PIL import Image
+# import io
+# from PIL import Image
 from typing import Optional
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -38,18 +39,31 @@ app.add_middleware(
 # -----VERTEX AI---------
 # Get Project ID and Region from environment variables or use defaults
 # Make sure GCP_PROJECT_ID matches your project from `gcloud init` (e.g., 'text-to-image-gen')
-PROJECT_ID = os.getenv("GCP_PROJECT_ID", "text-to-image-gen")
-REGION = os.getenv("GCP_REGION", "us-central1")
-
-# Initialize Vertex AI
 try:
-    vertexai.init(project=PROJECT_ID, location=REGION)
+    credentials_path = "credentials.json"
+    credentials = service_account.Credentials.from_service_account_file(
+        credentials_path,
+        scopes=["https://www.googleapis.com/auth/cloud-platform"]
+    )
+
+    # Load project details from a credential file
+    with open(credentials_path) as f:
+        cred_data = json.load(f)
+        PROJECT_ID = cred_data.get('project_id')
+        REGION = os.getenv("GCP_REGION", "us-central1")  # Region can still be configured via env if needed
+
+    # Initialize Vertex AI with explicit credentials
+    vertexai.init(
+        project=PROJECT_ID,
+        location=REGION,
+        credentials=credentials
+    )
     logger.info(f"Vertex AI initialized for project {PROJECT_ID} in region {REGION}")
 except Exception as e:
     logger.error(f"Failed to initialize Vertex AI: {e}", exc_info=True)
     raise ValueError(f"Failed to initialize Vertex AI: {e}. "
-                     "Ensure Vertex AI API is enabled for your project "
-                     "and `gcloud auth application-default login` is run.")
+                     "Ensure credentials.json exists in the root directory "
+                     "and contains valid service account credentials.")
 
 # Define supported aspect ratios centrally
 SUPPORTED_ASPECT_RATIOS = ["1:1", "9:16", "16:9", "4:3", "3:4"]

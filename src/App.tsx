@@ -41,7 +41,7 @@ export default function TextToImageGenerator() {
         try {
             const response = await fetch(`${API_BASE_URL}/health`);
             const data = await response.json();
-            setApiHealth(data.status === 'healthy' && data.api_configured);
+            setApiHealth(data.status === 'healthy'); // && data.api_configured
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
             setApiHealth(false);
